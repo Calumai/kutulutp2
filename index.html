@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 配對題庫生成及管理工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow-x: hidden;
+            background-color: #f3f4f6; /* bg-gray-100 */
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s ease-in-out;
+            opacity: 0;
+        }
+        .modal-backdrop.show {
+            display: flex;
+            opacity: 1;
+        }
+        /* 載入動畫 */
+        .loader {
+            width: 50px;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: 8px solid #0000;
+            border-right-color: #4f46e5; /* indigo-600 */
+            position: relative;
+            animation: l24 1s infinite linear;
+        }
+        .loader:before,
+        .loader:after {
+            content: "";
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: inherit;
+            animation: inherit;
+            animation-duration: 2s;
+        }
+        .loader:after {
+            animation-duration: 4s;
+        }
+        @keyframes l24 {
+            100% {transform: rotate(1turn)}
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl relative">
+        <!-- Settings Button -->
+        <div class="absolute top-4 right-4 z-10">
+            <button id="settings-btn" class="bg-white p-2 rounded-full text-2xl shadow-md hover:bg-gray-200 transition-colors" title="設定 AI 來源">⚙️</button>
+        </div>
+
+        <!-- 標題 -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl md:text-6xl font-black text-gray-800">
+                AI 配對題庫生成工具
+            </h1>
+            <p class="text-lg text-gray-500 mt-2">A Simple & Powerful Matching Quiz Generator</p>
+        </header>
+
+        <main class="max-w-6xl mx-auto">
+            <!-- 頂部操作按鈕區 -->
+            <div class="flex justify-center gap-4 mb-8">
+                <button id="open-material-modal" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg text-lg font-bold flex items-center gap-2 shadow-sm transition-colors">
+                    🤖 AI 生成題庫
+                </button>
+                <button id="open-batch-add-modal" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-bold flex items-center gap-2 shadow-sm transition-colors">
+                    ✍️ 手動建立題庫
+                </button>
+                <button id="open-data-modal" class="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded-lg text-lg font-bold flex items-center gap-2 shadow-sm transition-colors">
+                    💾 資料管理
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- 左側：我的題庫 -->
+                <section id="bank-section">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-3xl font-bold mb-4 flex items-center text-gray-700">
+                            <span class="text-white bg-green-500 rounded-lg w-10 h-10 flex items-center justify-center text-xl mr-3">📚</span>
+                            我的題庫
+                        </h2>
+                        <div id="bank-list">
+                            <!-- 題庫列表將動態生成於此 -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 右側：出題與匯出 -->
+                <section id="output-section">
+                     <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-3xl font-bold mb-4 flex items-center text-gray-700">
+                            <span class="text-white bg-red-500 rounded-lg w-10 h-10 flex items-center justify-center text-xl mr-3">🎯</span>
+                            生成練習與匯出
+                        </h2>
+                        <div id="quiz-generator">
+                             <div class="bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                                <p class="font-bold text-lg mb-2 text-gray-600">請先從左側選擇要使用的題庫。</p>
+                                <div id="auto-generate-options">
+                                    <div class="mb-4">
+                                        <label for="num-pairs" class="font-bold text-gray-700">總題數 (配對組數)：</label>
+                                        <input type="number" id="num-pairs" value="10" min="1" class="border-gray-300 rounded-md shadow-sm w-24 p-2 text-center focus:ring-indigo-500 focus:border-indigo-500">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 mt-2">
+                                    <button id="generate-quiz-btn-auto" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 text-lg rounded-lg font-semibold transition-colors disabled:bg-gray-300" disabled>自動出題</button>
+                                    <button id="generate-quiz-btn-manual" class="w-full bg-teal-500 hover:bg-teal-600 text-white py-2 text-lg rounded-lg font-semibold transition-colors disabled:bg-gray-300" disabled>手動選題</button>
+                                </div>
+                             </div>
+                        </div>
+                                                
+                        <div id="quiz-preview" class="mt-6 hidden">
+                             <h3 class="text-2xl font-bold mb-2 text-gray-700">練習題預覽</h3>
+                             <div id="quiz-preview-list" class="bg-gray-50 p-4 border border-gray-200 rounded-lg max-h-96 overflow-y-auto">
+                                <!-- 預覽題目將顯示於此 -->
+                             </div>
+                             <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <h4 class="font-bold text-yellow-800 mb-2">匯出設定</h4>
+                                <p class="mb-2 text-gray-700">匯出時，哪一欄要放在前面？</p>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center"><input type="radio" name="export-order" value="col1_first" checked class="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"> 項目1 在前</label>
+                                    <label class="flex items-center"><input type="radio" name="export-order" value="col2_first" class="mr-2 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"> 項目2 在前</label>
+                                </div>
+                             </div>
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <button id="export-wordwall-btn" class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg font-semibold transition-colors">匯出 Wordwall</button>
+                                <button id="export-game-btn" class="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded-lg font-semibold transition-colors">匯出遊戲 HTML</button>
+                             </div>
+                        </div>
+                     </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="loading-modal" class="modal-backdrop">
+        <div class="flex flex-col items-center justify-center">
+            <div class="loader"></div>
+            <p id="loading-text" class="text-white text-2xl font-bold mt-6">AI 正在努力為您生成配對題...</p>
+        </div>
+    </div>
+
+    <div id="edit-bank-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-4xl h-5/6 flex flex-col">
+            <h2 id="edit-modal-title" class="text-2xl font-bold p-4 border-b border-gray-200">編輯題庫</h2>
+            <div id="edit-modal-content" class="p-6 overflow-y-auto flex-grow"></div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+                <button id="edit-modal-save" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">儲存變更</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="batch-add-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-3xl flex flex-col max-h-[90vh]">
+            <h2 class="text-2xl font-bold p-4 border-b border-gray-200">手動建立新題庫</h2>
+            <div class="p-6 overflow-y-auto flex-grow space-y-4">
+                <div>
+                    <label for="new-bank-name" class="font-bold text-gray-700">新題庫名稱:</label>
+                    <input type="text" id="new-bank-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：英文高頻單字 (第一課)">
+                </div>
+                 <div>
+                    <label for="col1-name" class="font-bold text-gray-700">項目1 欄位名稱:</label>
+                    <input type="text" id="col1-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：英文單字">
+                </div>
+                 <div>
+                    <label for="col2-name" class="font-bold text-gray-700">項目2 欄位名稱:</label>
+                    <input type="text" id="col2-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：中文翻譯">
+                </div>
+                <div>
+                    <label for="batch-input-text" class="font-bold text-gray-700">貼上配對內容:</label>
+                    <textarea id="batch-input-text" class="w-full h-48 border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="格式：項目1(Tab或,)項目2(換行)&#10;例如：&#10;apple,蘋果&#10;banana,香蕉"></textarea>
+                    <p class="text-sm text-gray-600 mt-1">每一行代表一組配對。請使用 Tab 鍵或逗號 , 分隔兩個項目。</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+                <button id="batch-add-save" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">建立題庫</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="material-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-3xl flex flex-col max-h-[90vh]">
+            <h2 class="text-2xl font-bold p-4 border-b border-gray-200">AI 生成題庫</h2>
+            <div class="p-6 overflow-y-auto flex-grow space-y-4">
+                <div>
+                    <label for="ai-text-input" class="font-bold text-gray-700">教材文字來源：</label>
+                    <textarea id="ai-text-input" class="w-full h-48 border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="在此貼上文字，或從下方上傳檔案自動擷取..."></textarea>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border-2 border-dashed">
+                    <label for="file-input" class="font-bold text-gray-700">或上傳檔案自動擷取文字 (支援 PDF, PNG, JPG)：</label>
+                    <input type="file" id="file-input" class="w-full mt-1 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".pdf,.png,.jpg,.jpeg">
+                    <p class="text-sm text-gray-600 mt-2">上傳後文字將自動填入上方文字框。</p>
+                </div>
+                <hr class="my-2 border-dashed border-gray-300"/>
+                <div class="space-y-4">
+                    <div>
+                        <label for="ai-bank-name" class="font-bold text-gray-700">新題庫名稱:</label>
+                        <input type="text" id="ai-bank-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：課文重要詞彙 (可由檔名自動帶入)">
+                    </div>
+                    <div>
+                        <label for="ai-pair-type" class="font-bold text-gray-700">您想生成哪種類型的配對？</label>
+                        <input type="text" id="ai-pair-type" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：英文單字與中文翻譯、專有名詞與其解釋">
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">英文單字與中文翻譯</button>
+                            <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">專有名詞與其解釋</button>
+                            <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">國字與注音</button>
+                            <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">成語與解釋</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="ai-num-pairs" class="font-bold text-gray-700">希望生成幾組配對？</label>
+                        <input type="number" id="ai-num-pairs" value="15" min="1" max="50" class="border-gray-300 rounded-md shadow-sm w-24 p-2 text-center mt-1 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+                <button id="generate-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">開始生成</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="data-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-2xl flex flex-col">
+            <h2 class="text-2xl font-bold p-4 border-b border-gray-200">資料管理</h2>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="import-data-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-black py-3 rounded-lg text-lg font-semibold transition-colors">📥 匯入題庫 (.json)</button>
+                    <button id="export-data-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white py-3 rounded-lg text-lg font-semibold transition-colors">📤 匯出全部資料</button>
+                    <input type="file" id="import-file-input" class="hidden" accept=".json">
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-select-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-3xl flex flex-col">
+            <h2 class="text-2xl font-bold p-4 border-b border-gray-200">選擇遊戲類型</h2>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <p class="text-gray-600 mb-4">請選擇要匯出的遊戲，題庫將自動填入：</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button class="game-option-btn h-full w-full text-left bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/普普風配對遊戲New/普普風配對遊戲.html">
+                        <h3 class="font-bold text-lg">🎨 普普風配對遊戲</h3>
+                        <p class="text-sm">經典的翻牌配對記憶遊戲。</p>
+                    </button>
+                    <button class="game-option-btn h-full w-full text-left bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/中英打闖關遊戲/中英打闖關遊戲.html">
+                        <h3 class="font-bold text-lg">⌨️ 中英打闖關遊戲</h3>
+                        <p class="text-sm">根據提示詞輸入正確答案的打字遊戲。</p>
+                    </button>
+                     <button class="game-option-btn h-full w-full text-left bg-yellow-500 hover:bg-yellow-600 text-black p-4 rounded-lg transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/普普風單字學習機-本機版/普普風單字學習機.html">
+                        <h3 class="font-bold text-lg">📖 普普風英文單字學習機</h3>
+                        <p class="text-sm">讓學生使用平板練習背英文單字的遊戲。</p>
+                    </button>
+                    <button class="game-option-btn h-full w-full text-left bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/英打練習/英打練習-自訂單字版.html">
+                        <h3 class="font-bold text-lg">🇬🇧 單字英打練習</h3>
+                        <p class="text-sm">基礎的英文單字打字練習。</p>
+                    </button>
+                    <button class="game-option-btn h-full w-full text-left bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-lg md:col-span-2 transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/中打練習/中打練習-自訂單字版.html">
+                        <h3 class="font-bold text-lg">🇹🇼 詞語中打練習</h3>
+                        <p class="text-sm">基礎的中文詞語打字練習。</p>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-2xl flex flex-col">
+            <h2 class="text-2xl font-bold p-4 border-b border-gray-200">AI 來源設定</h2>
+            <div class="p-6 overflow-y-auto flex-grow space-y-6">
+                <!-- AI Source Selection -->
+                <div>
+                    <label class="font-bold text-lg text-gray-700">選擇 AI 來源:</label>
+                    <div class="mt-2 space-y-2">
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-lg has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-400 cursor-pointer">
+                            <input type="radio" name="ai-source" value="default" class="h-5 w-5 mr-3 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <p class="font-bold">預設 Gemini</p>
+                                <p class="text-sm text-gray-600">使用內建的 Gemini 模型，無需設定。</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-lg has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-400 cursor-pointer">
+                            <input type="radio" name="ai-source" value="gemini_api" class="h-5 w-5 mr-3 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <p class="font-bold">Gemini API Key</p>
+                                <p class="text-sm text-gray-600">使用您自己的 Google AI Gemini API 金鑰。</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-lg has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-400 cursor-pointer">
+                            <input type="radio" name="ai-source" value="ollama" class="h-5 w-5 mr-3 text-indigo-600 focus:ring-indigo-500">
+                            <div>
+                                <p class="font-bold">本地 Ollama</p>
+                                <p class="text-sm text-gray-600">連接到您在本地運行的 Ollama 服務。</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Gemini API Key Section -->
+                <div id="gemini-api-settings" class="hidden pl-8">
+                    <label for="gemini-api-key" class="font-bold text-gray-700">您的 Gemini API Key:</label>
+                    <input type="password" id="gemini-api-key" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="在此貼上您的 API Key">
+                </div>
+
+                <!-- Ollama Section -->
+                <div id="ollama-settings" class="hidden pl-8 space-y-4">
+                    <div>
+                        <label for="ollama-url" class="font-bold text-gray-700">Ollama URL:</label>
+                        <input type="text" id="ollama-url" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如: http://localhost:11434">
+                    </div>
+                    <div>
+                        <label for="ollama-model" class="font-bold text-gray-700">選擇模型:</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <select id="ollama-model" class="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">請先獲取模型列表</option>
+                            </select>
+                            <button id="fetch-ollama-models-btn" class="bg-indigo-500 text-white px-4 py-2 rounded-lg flex-shrink-0 font-semibold hover:bg-indigo-600 transition-colors">獲取</button>
+                        </div>
+                         <p id="ollama-status" class="text-sm text-gray-500 mt-1 h-4"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+                <button id="settings-save" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">儲存設定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="manual-select-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-4xl h-5/6 flex flex-col">
+            <h2 class="text-2xl font-bold p-4 border-b border-gray-200">手動選擇題目</h2>
+            <div id="manual-select-content" class="p-6 overflow-y-auto flex-grow">
+                <!-- Pairs will be dynamically added here -->
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
+                <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+                <button id="manual-select-done" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">完成選題</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const app = {
+        db: null,
+        questionBanks: [],
+        selectedBankIds: new Set(),
+        currentQuiz: [],
+        settings: {
+            aiSource: 'default', // 'default', 'gemini_api', 'ollama'
+            geminiApiKey: '',
+            ollamaUrl: 'http://localhost:11434',
+            ollamaModel: ''
+        },
+
+        init() {
+            if (window.pdfjsLib) {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+            this.loadSettings();
+            this.initDB();
+            this.addEventListeners();
+        },
+
+        initDB() {
+            const request = indexedDB.open('MatchingQuizDB', 1);
+            request.onerror = (event) => console.error("Database error: " + event.target.errorCode);
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                this.loadBanksFromDB();
+            };
+            request.onupgradeneeded = (event) => {
+                let db = event.target.result;
+                db.createObjectStore("questionBanks", { keyPath: "id" });
+            };
+        },
+
+        addEventListeners() {
+            // Main buttons
+            document.getElementById('open-material-modal').addEventListener('click', () => this.openModal('material-modal'));
+            document.getElementById('open-batch-add-modal').addEventListener('click', () => this.openModal('batch-add-modal'));
+            document.getElementById('open-data-modal').addEventListener('click', () => this.openModal('data-modal'));
+            document.getElementById('settings-btn').addEventListener('click', () => this.openSettingsModal());
+
+            // Modal Cancel Buttons
+            document.querySelectorAll('.modal-cancel-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => this.closeAllModals());
+            });
+
+            // Specific Modal Save/Action Buttons
+            document.getElementById('generate-btn').addEventListener('click', () => this.handleAIGenerate());
+            document.getElementById('batch-add-save').addEventListener('click', () => this.handleBatchAdd());
+            document.getElementById('settings-save').addEventListener('click', () => this.saveSettings());
+            document.querySelectorAll('input[name="ai-source"]').forEach(radio => {
+                radio.addEventListener('change', () => this.updateSettingsUI());
+            });
+            document.getElementById('fetch-ollama-models-btn').addEventListener('click', () => this.fetchOllamaModels());
+            document.getElementById('edit-modal-save').addEventListener('click', () => this.saveBankEdits());
+            document.getElementById('manual-select-done').addEventListener('click', () => this.generateManualQuiz());
+
+            // AI Gen Modal File Input
+            document.getElementById('file-input').addEventListener('change', (e) => this.handleFileUpload(e));
+
+            // AI Gen preset buttons
+            document.querySelectorAll('#material-modal .preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.getElementById('ai-pair-type').value = e.target.textContent;
+                });
+            });
+
+            // Quiz Generation & Export
+            document.getElementById('generate-quiz-btn-auto').addEventListener('click', () => this.generatePracticeQuiz('auto'));
+            document.getElementById('generate-quiz-btn-manual').addEventListener('click', () => this.generatePracticeQuiz('manual'));
+            document.getElementById('export-wordwall-btn').addEventListener('click', () => this.exportQuiz('wordwall'));
+            document.getElementById('export-game-btn').addEventListener('click', () => this.openGameSelectModal());
+
+            // Game select modal buttons
+            document.querySelectorAll('#game-select-modal .game-option-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const url = e.currentTarget.dataset.url;
+                    this.downloadGameWithQuiz(url);
+                });
+            });
+
+            // Data Management
+            document.getElementById('export-data-btn').addEventListener('click', () => this.exportAllData());
+            document.getElementById('import-data-btn').addEventListener('click', () => document.getElementById('import-file-input').click());
+            document.getElementById('import-file-input').addEventListener('change', (event) => this.importAllData(event));
+        },
+        
+        // --- Modal Management ---
+        openModal(modalId) {
+            this.closeAllModals();
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('show');
+            }
+        },
+        
+        openGameSelectModal() {
+            if (this.currentQuiz.length === 0) {
+                alert('請先生成練習題！');
+                return;
+            }
+            this.openModal('game-select-modal');
+        },
+
+        openSettingsModal() {
+            document.querySelector(`input[name="ai-source"][value="${this.settings.aiSource}"]`).checked = true;
+            document.getElementById('gemini-api-key').value = this.settings.geminiApiKey;
+            document.getElementById('ollama-url').value = this.settings.ollamaUrl;
+            
+            const modelSelect = document.getElementById('ollama-model');
+            modelSelect.innerHTML = `<option value="">請先獲取模型列表</option>`;
+            if (this.settings.aiSource === 'ollama' && this.settings.ollamaModel) {
+                modelSelect.innerHTML = `<option value="${this.settings.ollamaModel}" selected>${this.settings.ollamaModel}</option>`;
+            }
+
+            this.updateSettingsUI();
+            this.openModal('settings-modal');
+        },
+
+        closeAllModals() {
+            document.querySelectorAll('.modal-backdrop.show').forEach(modal => {
+                modal.classList.remove('show');
+            });
+        },
+
+        showLoading(message) {
+            document.getElementById('loading-text').textContent = message;
+            document.getElementById('loading-modal').classList.add('show');
+        },
+        
+        hideLoading() {
+            document.getElementById('loading-modal').classList.remove('show');
+        },
+
+        // --- Settings ---
+        loadSettings() {
+            const savedSettings = localStorage.getItem('aiMatchingQuizSettings');
+            if (savedSettings) {
+                this.settings = { ...this.settings, ...JSON.parse(savedSettings) };
+            }
+        },
+
+        saveSettings() {
+            this.settings.aiSource = document.querySelector('input[name="ai-source"]:checked').value;
+            this.settings.geminiApiKey = document.getElementById('gemini-api-key').value.trim();
+            this.settings.ollamaUrl = document.getElementById('ollama-url').value.trim();
+            this.settings.ollamaModel = document.getElementById('ollama-model').value;
+            localStorage.setItem('aiMatchingQuizSettings', JSON.stringify(this.settings));
+            alert('設定已儲存！');
+            this.closeAllModals();
+        },
+        
+        updateSettingsUI() {
+            const source = document.querySelector('input[name="ai-source"]:checked').value;
+            document.getElementById('gemini-api-settings').classList.toggle('hidden', source !== 'gemini_api');
+            document.getElementById('ollama-settings').classList.toggle('hidden', source !== 'ollama');
+        },
+
+        async fetchOllamaModels() {
+            const url = document.getElementById('ollama-url').value.trim();
+            if (!url) {
+                alert('請先輸入 Ollama URL。');
+                return;
+            }
+            const statusEl = document.getElementById('ollama-status');
+            const selectEl = document.getElementById('ollama-model');
+            statusEl.textContent = '正在獲取模型...';
+            selectEl.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${url}/api/tags`);
+                if (!response.ok) throw new Error(`伺服器回應錯誤: ${response.status}`);
+                const data = await response.json();
+                
+                if (!data.models || data.models.length === 0) {
+                    statusEl.textContent = '找不到任何模型。';
+                    selectEl.innerHTML = '<option value="">找不到模型</option>';
+                    return;
+                }
+
+                data.models.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.name;
+                    option.textContent = model.name;
+                    selectEl.appendChild(option);
+                });
+                
+                if(this.settings.ollamaModel) {
+                    selectEl.value = this.settings.ollamaModel;
+                }
+
+                statusEl.textContent = `成功找到 ${data.models.length} 個模型！`;
+            } catch (error) {
+                console.error("Fetch Ollama Models Error:", error);
+                statusEl.textContent = `獲取失敗: ${error.message}`;
+                selectEl.innerHTML = '<option value="">獲取失敗</option>';
+            }
+        },
+
+        // --- Core Logic ---
+        async handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const bankNameInput = document.getElementById('ai-bank-name');
+            if (!bankNameInput.value.trim()) {
+                bankNameInput.value = file.name.replace(/\.[^/.]+$/, "");
+            }
+
+            const fileType = file.type;
+            let textContent = '';
+            try {
+                if (fileType === 'application/pdf') {
+                    this.showLoading('正在讀取 PDF 檔案...');
+                    textContent = await this.readPdf(file);
+                } else if (fileType.startsWith('image/')) {
+                    textContent = await this.readImage(file);
+                } else {
+                    alert('不支援的檔案格式。請上傳 PDF 或圖片檔。');
+                    return;
+                }
+                document.getElementById('ai-text-input').value = textContent;
+                alert('文字已成功擷取並填入文字框！');
+            } catch (error) {
+                console.error("File processing error:", error);
+                alert(`處理檔案時發生錯誤： ${error.message}`);
+            } finally {
+                this.hideLoading();
+                event.target.value = '';
+            }
+        },
+
+        async readPdf(file) {
+            const typedarray = new Uint8Array(await file.arrayBuffer());
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let text = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(item => item.str).join(' ') + '\n';
+            }
+            return text;
+        },
+
+        async readImage(file) {
+            this.showLoading('正在準備文字辨識引擎...');
+            const worker = await Tesseract.createWorker('chi_tra', 1, {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        this.showLoading(`正在辨識圖片文字... ${Math.round(m.progress * 100)}%`);
+                    }
+                },
+            });
+            this.showLoading('正在辨識圖片文字... 0%');
+            const { data: { text } } = await worker.recognize(file);
+            await worker.terminate();
+            return text;
+        },
+        
+        resetMaterialModal() {
+            document.getElementById('ai-bank-name').value = '';
+            document.getElementById('ai-pair-type').value = '';
+            document.getElementById('ai-num-pairs').value = '15';
+            document.getElementById('ai-text-input').value = '';
+        },
+
+        async handleAIGenerate() {
+            const bankName = document.getElementById('ai-bank-name').value.trim();
+            const pairType = document.getElementById('ai-pair-type').value.trim();
+            const numPairs = document.getElementById('ai-num-pairs').value;
+            const textContent = document.getElementById('ai-text-input').value.trim();
+
+            if (!bankName || !pairType || !textContent) {
+                alert('請填寫所有欄位：題庫名稱、配對類型、以及教材文字。');
+                return;
+            }
+            
+            this.closeAllModals();
+            this.showLoading('正在分析內容並呼叫 AI...');
+
+            try {
+                const aiResponse = await this.callAIAPI(textContent, pairType, numPairs);
+                const newBank = {
+                    id: `bank-${Date.now()}`,
+                    name: bankName,
+                    col1Name: aiResponse.col1Name || '項目1',
+                    col2Name: aiResponse.col2Name || '項目2',
+                    pairs: aiResponse.pairs || []
+                };
+
+                if (newBank.pairs.length === 0) {
+                    alert('AI 未能生成任何配對，請檢查您的教材內容或調整配對類型描述。');
+                } else {
+                    this.saveBankToDB(newBank, true);
+                    this.resetMaterialModal(); // Reset on success
+                }
+            } catch (error) {
+                console.error("AI Generation Error:", error);
+                alert(`生成失敗：${error.message}`);
+            } finally {
+                this.hideLoading();
+            }
+        },
+
+        async callAIAPI(text, pairType, numPairs) {
+            switch (this.settings.aiSource) {
+                case 'gemini_api':
+                case 'default':
+                    return this.callGemini(text, pairType, numPairs);
+                case 'ollama':
+                    return this.callOllama(text, pairType, numPairs);
+                default: 
+                    return this.callGemini(text, pairType, numPairs); // Fallback to default
+            }
+        },
+
+        async callGemini(text, pairType, numPairs) {
+            let apiKey = "";
+            if (this.settings.aiSource === 'gemini_api') {
+                apiKey = this.settings.geminiApiKey;
+                if (!apiKey) {
+                    throw new Error('尚未設定 Gemini API Key。請在設定中輸入。');
+                }
+            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const systemPrompt = `你是一個專業的教育內容產生器，專門從文本中提取資訊來建立配對題。
+            任務：
+            1. 根據使用者提供的文本和期望的配對類型，生成指定數量的配對組。
+            2. 為這兩欄配對命名，例如 "英文單字" 和 "中文翻譯"。
+            3. 嚴格基於提供的文本內容，不可虛構或添加外部資訊。
+
+            輸出格式：
+            你必須嚴格回傳一個 JSON 物件，不包含任何額外文字或 markdown 標記。JSON 格式如下：
+            {
+              "col1Name": "欄位1的名稱",
+              "col2Name": "欄位2的名稱",
+              "pairs": [
+                { "item1": "項目1a", "item2": "項目2a" },
+                { "item1": "項目1b", "item2": "項目2b" }
+              ]
+            }`;
+            
+            const userPrompt = `請從以下文本中，生成 ${numPairs} 組關於「${pairType}」的配對題。\n\n文本：\n${text}`;
+
+            const payload = {
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            col1Name: { type: "STRING" },
+                            col2Name: { type: "STRING" },
+                            pairs: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        item1: { type: "STRING" },
+                                        item2: { type: "STRING" }
+                                    },
+                                    required: ["item1", "item2"]
+                                }
+                            }
+                        },
+                        required: ["col1Name", "col2Name", "pairs"]
+                    }
+                }
+            };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`AI API 請求失敗，狀態碼：${response.status}. ${errorBody}`);
+            }
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                throw new Error("AI 回應格式不正確或為空。");
+            }
+            try {
+                return JSON.parse(candidate.content.parts[0].text);
+            } catch (e) {
+                console.error("Failed to parse AI JSON response:", candidate.content.parts[0].text);
+                throw new Error("無法解析 AI 回傳的 JSON 資料。");
+            }
+        },
+
+        async callOllama(text, pairType, numPairs) {
+            const { ollamaUrl, ollamaModel } = this.settings;
+            if (!ollamaUrl || !ollamaModel) {
+                throw new Error('尚未設定 Ollama URL 或選擇模型。');
+            }
+            const apiUrl = `${ollamaUrl}/api/generate`;
+
+            const systemPrompt = `你是一個專業的教育內容產生器，專門從文本中提取資訊來建立配對題。你的任務是根據提供的文本生成指定數量的JSON格式配對題。請遵循以下規則：1. 為兩欄配對命名。2. 生成 ${numPairs} 組關於「${pairType}」的配對。3. 所有內容必須完全基於提供的文本。4. 你的回答必須是單一且格式正確的JSON物件，不要有任何額外的文字。`;
+            const fullPrompt = `${systemPrompt}\n\n文本內容如下：\n\`\`\`\n${text}\n\`\`\`\n請生成 JSON：`;
+            
+            const payload = {
+                model: ollamaModel,
+                prompt: fullPrompt,
+                format: "json",
+                stream: false
+            };
+
+            const response = await fetch(apiUrl, { method: 'POST', body: JSON.stringify(payload) });
+            if (!response.ok) {
+                throw new Error(`Ollama API 請求失敗，狀態碼：${response.status}`);
+            }
+            const result = await response.json();
+            if (!result.response) {
+                throw new Error("Ollama 回應格式不正確或為空。");
+            }
+            try {
+                const cleanedText = result.response.replace(/^`{3}json\n?/, '').replace(/\n?`{3}$/, '');
+                return JSON.parse(cleanedText);
+            } catch (e) {
+                console.error("Failed to parse Ollama JSON response:", result.response);
+                throw new Error("無法解析 Ollama 回傳的 JSON 資料。");
+            }
+        },
+
+        handleBatchAdd() {
+            const bankName = document.getElementById('new-bank-name').value.trim();
+            const col1Name = document.getElementById('col1-name').value.trim() || '項目1';
+            const col2Name = document.getElementById('col2-name').value.trim() || '項目2';
+            const text = document.getElementById('batch-input-text').value.trim();
+
+            if (!bankName || !text) {
+                alert('請輸入題庫名稱和配對內容！');
+                return;
+            }
+
+            try {
+                const pairs = this.parseMatchingFormat(text);
+                if (pairs.length === 0) {
+                    alert('沒有成功解析任何配對，請檢查格式。');
+                    return;
+                }
+
+                const newBank = {
+                    id: `bank-${Date.now()}`,
+                    name: bankName,
+                    col1Name: col1Name,
+                    col2Name: col2Name,
+                    pairs: pairs
+                };
+
+                this.saveBankToDB(newBank, true);
+                this.closeAllModals();
+                alert(`成功建立題庫「${bankName}」並新增 ${pairs.length} 組配對！`);
+            } catch (error) {
+                alert(`建立題庫失敗：${error.message}`);
+            }
+        },
+        
+        parseMatchingFormat(text) {
+            const pairs = [];
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            for (const line of lines) {
+                const parts = line.split(/[\t,]/); // Split by tab or comma
+                if (parts.length >= 2) {
+                    const item1 = parts[0].trim();
+                    const item2 = parts.slice(1).join(' ').trim(); // Join rest in case of comma in item2
+                    if (item1 && item2) {
+                        pairs.push({ item1, item2 });
+                    }
+                }
+            }
+            return pairs;
+        },
+
+        // --- DB Operations ---
+        saveBankToDB(bank, isNew = false) {
+            const transaction = this.db.transaction(["questionBanks"], "readwrite");
+            const objectStore = transaction.objectStore("questionBanks");
+            const request = objectStore.put(bank);
+            request.onsuccess = () => {
+                if (isNew) this.loadBanksFromDB();
+            };
+            request.onerror = (event) => console.error("Error saving bank to DB:", event.target.errorCode);
+        },
+
+        loadBanksFromDB() {
+            this.questionBanks = [];
+            const objectStore = this.db.transaction("questionBanks").objectStore("questionBanks");
+            objectStore.openCursor().onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    this.questionBanks.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    this.renderBankList();
+                }
+            };
+        },
+        
+        deleteBank(id) {
+            if (!confirm("確定要刪除這個題庫嗎？")) return;
+            const request = this.db.transaction(["questionBanks"], "readwrite").objectStore("questionBanks").delete(id);
+            request.onsuccess = () => {
+                this.selectedBankIds.delete(id);
+                this.loadBanksFromDB();
+            };
+        },
+
+        // --- UI Rendering ---
+        renderBankList() {
+            const listEl = document.getElementById('bank-list');
+            listEl.innerHTML = this.questionBanks.length === 0 ? '<p class="text-gray-500">尚未建立任何題庫。</p>' : '';
+            if (this.questionBanks.length === 0) {
+                this.updateQuizButtonState();
+                return;
+            }
+
+            this.questionBanks.forEach(bank => {
+                const totalPairs = (bank.pairs || []).length;
+                const bankEl = document.createElement('div');
+                bankEl.className = 'p-3 bg-white border border-gray-200 rounded-lg flex items-center justify-between gap-2 hover:bg-gray-50';
+                bankEl.innerHTML = `
+                    <div class="flex items-center flex-grow overflow-hidden">
+                        <input type="checkbox" data-id="${bank.id}" class="bank-checkbox h-5 w-5 mr-3 flex-shrink-0 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" ${this.selectedBankIds.has(bank.id) ? 'checked' : ''}>
+                        <div class="truncate">
+                            <p class="font-bold truncate text-gray-800">${this.escapeHTML(bank.name)}</p>
+                            <p class="text-sm text-gray-500">${totalPairs} 組配對</p>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 flex gap-2">
+                        <button data-id="${bank.id}" class="edit-bank-btn text-sm bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-semibold px-3 py-1 rounded-md transition-colors">編輯</button>
+                        <button data-id="${bank.id}" class="delete-bank-btn bg-red-500 hover:bg-red-600 text-white font-bold w-8 h-8 rounded-md transition-colors">X</button>
+                    </div>
+                `;
+                listEl.appendChild(bankEl);
+            });
+
+            // Re-attach event listeners after rendering
+            this.updateQuizButtonState();
+            document.querySelectorAll('.bank-checkbox').forEach(cb => cb.addEventListener('change', (e) => {
+                const id = e.target.dataset.id;
+                e.target.checked ? this.selectedBankIds.add(id) : this.selectedBankIds.delete(id);
+                this.updateQuizButtonState();
+            }));
+            document.querySelectorAll('.delete-bank-btn').forEach(btn => btn.addEventListener('click', (e) => this.deleteBank(e.currentTarget.dataset.id)));
+            document.querySelectorAll('.edit-bank-btn').forEach(btn => btn.addEventListener('click', (e) => this.openEditModal(e.currentTarget.dataset.id)));
+        },
+        
+        updateQuizButtonState() {
+            const disabled = this.selectedBankIds.size === 0;
+            document.getElementById('generate-quiz-btn-auto').disabled = disabled;
+            document.getElementById('generate-quiz-btn-manual').disabled = disabled;
+            if (disabled) {
+                document.getElementById('quiz-preview').classList.add('hidden');
+                this.currentQuiz = [];
+            }
+        },
+
+        // --- Quiz Generation & Export ---
+        generatePracticeQuiz(mode) {
+            if (this.selectedBankIds.size === 0) return alert("請至少選擇一個題庫！");
+
+            if (mode === 'auto') {
+                const numPairs = parseInt(document.getElementById('num-pairs').value, 10);
+                let allAvailablePairs = [];
+                this.questionBanks.forEach(bank => {
+                    if (this.selectedBankIds.has(bank.id)) {
+                        const pairsWithContext = (bank.pairs || []).map(p => ({...p, bankName: bank.name}));
+                        allAvailablePairs.push(...pairsWithContext);
+                    }
+                });
+                
+                if(allAvailablePairs.length === 0) return alert("選中的題庫中沒有任何配對題目。");
+                
+                this.currentQuiz = allAvailablePairs.sort(() => 0.5 - Math.random()).slice(0, numPairs);
+                this.renderQuizPreview();
+            } else if (mode === 'manual') {
+                this.openManualSelectModal();
+            }
+        },
+        
+        openManualSelectModal() {
+            const contentEl = document.getElementById('manual-select-content');
+            contentEl.innerHTML = '';
+            let pairCounter = 0;
+
+            this.questionBanks.forEach(bank => {
+                if (this.selectedBankIds.has(bank.id)) {
+                    (bank.pairs || []).forEach(pair => {
+                        pairCounter++;
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'p-3 mb-2 border rounded-md hover:bg-gray-100';
+                        const pairData = this.escapeHTML(JSON.stringify(pair));
+                        itemEl.innerHTML = `
+                            <label class="flex items-start">
+                                <input type="checkbox" class="manual-pair-checkbox h-5 w-5 mt-1 mr-3 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" data-pair='${pairData}'>
+                                <div>
+                                    <p>${this.escapeHTML(pair.item1)} ↔️ ${this.escapeHTML(pair.item2)}</p>
+                                    <p class="text-sm text-gray-500">(${this.escapeHTML(bank.name)})</p>
+                                </div>
+                            </label>
+                        `;
+                        contentEl.appendChild(itemEl);
+                    });
+                }
+            });
+
+            if (pairCounter === 0) {
+                return alert('選中的題庫中沒有題目可供選擇。');
+            }
+            this.openModal('manual-select-modal');
+        },
+
+        generateManualQuiz() {
+            const selectedPairs = [];
+            document.querySelectorAll('.manual-pair-checkbox:checked').forEach(checkbox => {
+                selectedPairs.push(JSON.parse(checkbox.dataset.pair));
+            });
+            
+            if (selectedPairs.length === 0) {
+                return alert('您沒有選擇任何題目！');
+            }
+
+            this.currentQuiz = selectedPairs;
+            this.renderQuizPreview();
+            this.closeAllModals();
+        },
+
+        renderQuizPreview() {
+            const previewEl = document.getElementById('quiz-preview');
+            const listEl = document.getElementById('quiz-preview-list');
+            if (this.currentQuiz.length === 0) {
+                previewEl.classList.add('hidden');
+                return;
+            }
+            listEl.innerHTML = '';
+            this.currentQuiz.forEach((pair, index) => {
+                const pairEl = document.createElement('div');
+                pairEl.className = 'mb-2 pb-2 border-b border-dashed border-gray-200 flex justify-between items-center';
+                pairEl.innerHTML = `
+                    <div class="flex-1">${index + 1}. ${this.escapeHTML(pair.item1)}</div>
+                    <div class="mx-2 text-gray-400">↔️</div>
+                    <div class="flex-1">${this.escapeHTML(pair.item2)}</div>
+                `;
+                listEl.appendChild(pairEl);
+            });
+            previewEl.classList.remove('hidden');
+        },
+
+        exportQuiz(format) {
+            if (this.currentQuiz.length === 0) {
+                alert("沒有可匯出的練習題。");
+                return;
+            }
+            
+            const col1First = document.querySelector('input[name="export-order"]:checked').value === 'col1_first';
+            let content = "";
+            const separator = '\t';
+
+            this.currentQuiz.forEach(pair => {
+                const col1 = pair.item1;
+                const col2 = pair.item2;
+                const row = col1First ? [col1, col2] : [col2, col1];
+                content += row.join(separator) + "\r\n";
+            });
+            
+            this.downloadFile(content, `matching_quiz_${format}_${Date.now()}.txt`, 'text/plain;charset=utf-8;');
+        },
+        
+        async downloadGameWithQuiz(gameUrl) {
+            if (this.currentQuiz.length === 0) {
+                alert('請先生成練習題！');
+                return;
+            }
+
+            this.showLoading('正在載入遊戲並填入題庫...');
+            try {
+                const response = await fetch(gameUrl);
+                if (!response.ok) {
+                    throw new Error(`無法載入遊戲 HTML (狀態: ${response.status})`);
+                }
+                let gameHTML = await response.text();
+                
+                const quizData = this.convertQuizForMatchingGame();
+                
+                gameHTML = this.injectQuizIntoGameHTML(gameHTML, quizData);
+
+                const gameName = gameUrl.split('/').pop().split('.html')[0];
+                this.downloadFile(gameHTML, `${gameName}_${Date.now()}.html`, 'text/html;charset=utf-8;');
+
+            } catch (error) {
+                console.error('下載遊戲失敗:', error);
+                alert(`下載遊戲失敗：${error.message}`);
+            } finally {
+                this.hideLoading();
+            }
+        },
+
+        convertQuizForMatchingGame() {
+            const col1First = document.querySelector('input[name="export-order"]:checked').value === 'col1_first';
+            let content = "";
+            const separator = '\t';
+
+            this.currentQuiz.forEach(pair => {
+                const col1 = pair.item1;
+                const col2 = pair.item2;
+                const row = col1First ? [col1, col2] : [col2, col1];
+                content += row.join(separator) + "\r\n";
+            });
+            return content.trim();
+        },
+
+        injectQuizIntoGameHTML(gameHTML, quizData) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(gameHTML, 'text/html');
+            const textarea = doc.querySelector('textarea');
+
+            if (textarea) {
+                textarea.textContent = quizData;
+            } else {
+                console.warn('在遊戲 HTML 中找不到 <textarea>，題庫可能無法正確填入。');
+            }
+
+            return `<!DOCTYPE html>\n${doc.documentElement.outerHTML}`;
+        },
+
+        downloadFile(content, fileName, contentType) {
+            const blob = new Blob([`\uFEFF${content}`], { type: contentType });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        },
+
+        // --- Edit Modal ---
+        openEditModal(bankId) {
+            this.editingBankId = bankId;
+            const bank = this.questionBanks.find(b => b.id === bankId);
+            if (!bank) return;
+            
+            document.getElementById('edit-modal-title').textContent = `編輯題庫: ${this.escapeHTML(bank.name)}`;
+            const contentEl = document.getElementById('edit-modal-content');
+            contentEl.innerHTML = `
+                <div class="mb-4">
+                    <label class="font-bold text-gray-700">題庫名稱:</label>
+                    <input type="text" id="edit-bank-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" value="${this.escapeHTML(bank.name)}">
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="font-bold text-gray-700">項目1 欄位名:</label>
+                        <input type="text" id="edit-col1-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" value="${this.escapeHTML(bank.col1Name || '項目1')}">
+                    </div>
+                    <div>
+                        <label class="font-bold text-gray-700">項目2 欄位名:</label>
+                        <input type="text" id="edit-col2-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" value="${this.escapeHTML(bank.col2Name || '項目2')}">
+                    </div>
+                </div>
+                <div id="edit-pairs-container" class="space-y-2"></div>
+                <button id="add-pair-btn" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-sm px-3 py-1 mt-4 rounded-md font-semibold transition-colors">新增一組配對</button>
+            `;
+            
+            const container = contentEl.querySelector('#edit-pairs-container');
+            (bank.pairs || []).forEach((pair, index) => {
+                container.appendChild(this.createPairEditRow(pair, index));
+            });
+
+            contentEl.querySelector('#add-pair-btn').addEventListener('click', () => {
+                const newIndex = container.children.length;
+                container.appendChild(this.createPairEditRow({item1: '', item2: ''}, newIndex, true));
+            });
+            
+            this.openModal('edit-bank-modal');
+        },
+
+        createPairEditRow(pair, index, isNew = false) {
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-11 gap-2 items-center';
+            row.dataset.index = index;
+            row.innerHTML = `
+                <div class="col-span-5">
+                    <input type="text" class="w-full border-gray-300 rounded-md shadow-sm p-2 item1-input focus:ring-indigo-500 focus:border-indigo-500" value="${this.escapeHTML(pair.item1)}">
+                </div>
+                <div class="text-center text-gray-400">↔️</div>
+                <div class="col-span-5">
+                    <input type="text" class="w-full border-gray-300 rounded-md shadow-sm p-2 item2-input focus:ring-indigo-500 focus:border-indigo-500" value="${this.escapeHTML(pair.item2)}">
+                </div>
+                <button class="delete-pair-btn bg-red-200 hover:bg-red-300 text-red-800 text-sm w-full h-full rounded-md font-semibold transition-colors">X</button>
+            `;
+            row.querySelector('.delete-pair-btn').addEventListener('click', (e) => {
+                e.target.closest('[data-index]').remove();
+            });
+            if (isNew) {
+                row.querySelector('.item1-input').focus();
+            }
+            return row;
+        },
+
+        saveBankEdits() {
+            const bank = this.questionBanks.find(b => b.id === this.editingBankId);
+            if (!bank) return;
+
+            bank.name = document.getElementById('edit-bank-name').value.trim();
+            bank.col1Name = document.getElementById('edit-col1-name').value.trim();
+            bank.col2Name = document.getElementById('edit-col2-name').value.trim();
+            
+            const newPairs = [];
+            document.querySelectorAll('#edit-pairs-container [data-index]').forEach(row => {
+                const item1 = row.querySelector('.item1-input').value.trim();
+                const item2 = row.querySelector('.item2-input').value.trim();
+                if (item1 && item2) {
+                    newPairs.push({ item1, item2 });
+                }
+            });
+            bank.pairs = newPairs;
+            
+            this.saveBankToDB(bank);
+            this.closeAllModals();
+            this.renderBankList();
+            alert('變更已儲存！');
+        },
+
+        // --- Data Import/Export ---
+        exportAllData() {
+            if (this.questionBanks.length === 0) return alert("沒有任何資料可以匯出。");
+            const dataStr = JSON.stringify(this.questionBanks, null, 2);
+            this.downloadFile(dataStr, 'ai_matching_quiz_backup.json', 'application/json');
+        },
+
+        importAllData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const importedBanks = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedBanks)) throw new Error("JSON 格式不正確。");
+
+                    importedBanks.forEach(bank => {
+                        if (bank.id && bank.name && bank.pairs) {
+                            this.saveBankToDB(bank);
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        this.loadBanksFromDB();
+                        alert(`成功匯入 ${importedBanks.length} 個題庫！`);
+                        this.closeAllModals();
+                    }, 500);
+
+                } catch (error) {
+                    alert(`匯入失敗：${error.message}`);
+                } finally {
+                    event.target.value = ''; // Reset file input
+                }
+            };
+            reader.readAsText(file);
+        },
+
+        escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>"']/g, function(match) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[match];
+            });
+        },
+    };
+
+    window.addEventListener('DOMContentLoaded', () => app.init());
+    </script>
+</body>
+</html>
+
