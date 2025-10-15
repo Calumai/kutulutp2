@@ -71,7 +71,7 @@
             <h1 class="text-5xl md:text-6xl font-black text-gray-800">
                 AI 配對題庫生成工具
             </h1>
-            <p class="text-lg text-gray-500 mt-2">A Simple & Powerful Matching Quiz Generator</p>
+            <p class="text-lg text-gray-500 mt-2">一個簡單又強大的族語配對題庫生成器</p>
         </header>
 
         <main class="max-w-6xl mx-auto">
@@ -174,11 +174,11 @@
             <div class="p-6 overflow-y-auto flex-grow space-y-4">
                 <div>
                     <label for="new-bank-name" class="font-bold text-gray-700">新題庫名稱:</label>
-                    <input type="text" id="new-bank-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：英文高頻單字 (第一課)">
+                    <input type="text" id="new-bank-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：族語高頻單字 (第一課)">
                 </div>
                  <div>
                     <label for="col1-name" class="font-bold text-gray-700">項目1 欄位名稱:</label>
-                    <input type="text" id="col1-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：英文單字">
+                    <input type="text" id="col1-name" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：族語單字">
                 </div>
                  <div>
                     <label for="col2-name" class="font-bold text-gray-700">項目2 欄位名稱:</label>
@@ -186,8 +186,8 @@
                 </div>
                 <div>
                     <label for="batch-input-text" class="font-bold text-gray-700">貼上配對內容:</label>
-                    <textarea id="batch-input-text" class="w-full h-48 border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="格式：項目1(Tab或,)項目2(換行)&#10;例如：&#10;apple,蘋果&#10;banana,香蕉"></textarea>
-                    <p class="text-sm text-gray-600 mt-1">每一行代表一組配對。請使用 Tab 鍵或逗號 , 分隔兩個項目。</p>
+                    <textarea id="batch-input-text" class="w-full h-48 border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="格式：項目1,項目2 (一行一組)&#10;例如：&#10;apple,蘋果&#10;banana,香蕉"></textarea>
+                    <p class="text-sm text-gray-600 mt-1">每一行代表一組配對。請使用逗號 , 分隔兩個項目。</p>
                 </div>
             </div>
             <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
@@ -218,9 +218,9 @@
                     </div>
                     <div>
                         <label for="ai-pair-type" class="font-bold text-gray-700">您想生成哪種類型的配對？</label>
-                        <input type="text" id="ai-pair-type" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：英文單字與中文翻譯、專有名詞與其解釋">
+                        <input type="text" id="ai-pair-type" class="w-full border-gray-300 rounded-md shadow-sm p-2 mt-1 focus:ring-indigo-500 focus:border-indigo-500" placeholder="例如：族語單字與中文翻譯、專有名詞與其解釋">
                         <div class="flex flex-wrap gap-2 mt-2">
-                            <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">英文單字與中文翻譯</button>
+                            <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">族語單字與中文翻譯</button>
                             <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">專有名詞與其解釋</button>
                             <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">國字與注音</button>
                             <button class="preset-btn bg-gray-200 hover:bg-gray-300 text-sm px-3 py-1 rounded-full font-semibold transition-colors">成語與解釋</button>
@@ -244,10 +244,11 @@
             <h2 class="text-2xl font-bold p-4 border-b border-gray-200">資料管理</h2>
             <div class="p-6 overflow-y-auto flex-grow">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <button id="import-data-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-black py-3 rounded-lg text-lg font-semibold transition-colors">📥 匯入題庫 (.json)</button>
-                    <button id="export-data-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white py-3 rounded-lg text-lg font-semibold transition-colors">📤 匯出全部資料</button>
-                    <input type="file" id="import-file-input" class="hidden" accept=".json">
+                    <button id="import-data-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-black py-3 rounded-lg text-lg font-semibold transition-colors">📥 匯入題庫 (.csv)</button>
+                    <button id="export-data-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white py-3 rounded-lg text-lg font-semibold transition-colors">📤 匯出全部資料 (.csv)</button>
+                    <input type="file" id="import-file-input" class="hidden" accept=".csv,text/csv">
                 </div>
+                <div id="csv-sample-link-container" class="mt-4 text-center text-sm text-gray-600"></div>
             </div>
             <div class="p-4 border-t border-gray-200 flex justify-end bg-gray-50">
                 <button class="modal-cancel-btn bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">關閉</button>
@@ -270,12 +271,12 @@
                         <p class="text-sm">根據提示詞輸入正確答案的打字遊戲。</p>
                     </button>
                      <button class="game-option-btn h-full w-full text-left bg-yellow-500 hover:bg-yellow-600 text-black p-4 rounded-lg transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/普普風單字學習機-本機版/普普風單字學習機.html">
-                        <h3 class="font-bold text-lg">📖 普普風英文單字學習機</h3>
-                        <p class="text-sm">讓學生使用平板練習背英文單字的遊戲。</p>
+                        <h3 class="font-bold text-lg">📖 普普風族語單字學習機</h3>
+                        <p class="text-sm">讓學生使用平板練習背族語單字的遊戲。</p>
                     </button>
                     <button class="game-option-btn h-full w-full text-left bg-red-500 hover:bg-red-600 text-white p-4 rounded-lg transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/英打練習/英打練習-自訂單字版.html">
                         <h3 class="font-bold text-lg">🇬🇧 單字英打練習</h3>
-                        <p class="text-sm">基礎的英文單字打字練習。</p>
+                        <p class="text-sm">基礎的族語單字打字練習。</p>
                     </button>
                     <button class="game-option-btn h-full w-full text-left bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-lg md:col-span-2 transition-colors" data-url="https://filedn.com/laMtL9jmKf7JrDEQG0A6OPy/html/中打練習/中打練習-自訂單字版.html">
                         <h3 class="font-bold text-lg">🇹🇼 詞語中打練習</h3>
@@ -364,6 +365,32 @@
             </div>
         </div>
     </div>
+    
+    <div id="alert-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-md flex flex-col">
+            <h2 id="alert-title" class="text-xl font-bold p-4 border-b border-gray-200">提示</h2>
+            <div class="p-6">
+                <p id="alert-message"></p>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end bg-gray-50">
+                <button id="alert-ok-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal" class="modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-md flex flex-col">
+            <h2 id="confirm-title" class="text-xl font-bold p-4 border-b border-gray-200">請確認</h2>
+            <div class="p-6">
+                <p id="confirm-message"></p>
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-4 bg-gray-50">
+                <button id="confirm-cancel-btn" class="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-lg font-semibold transition-colors">取消</button>
+                <button id="confirm-ok-btn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">確定</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
     const app = {
@@ -385,7 +412,57 @@
             this.loadSettings();
             this.initDB();
             this.addEventListeners();
+            this.createSampleCSVLink();
         },
+        
+        showAlert(message, title = '提示') {
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-message').textContent = message;
+            const okBtn = document.getElementById('alert-ok-btn');
+            
+            const close = () => this.closeModal('alert-modal');
+            
+            // Clone and replace the button to remove old event listeners
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            newOkBtn.addEventListener('click', close);
+
+            this.openModal('alert-modal');
+        },
+
+        showConfirm(message, title = '請確認') {
+            return new Promise(resolve => {
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+
+                const okBtn = document.getElementById('confirm-ok-btn');
+                const cancelBtn = document.getElementById('confirm-cancel-btn');
+                
+                const close = () => this.closeModal('confirm-modal');
+                
+                const onOk = () => {
+                    close();
+                    resolve(true);
+                };
+                
+                const onCancel = () => {
+                    close();
+                    resolve(false);
+                };
+
+                // Clone and replace buttons to remove old listeners
+                const newOkBtn = okBtn.cloneNode(true);
+                okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+                newOkBtn.addEventListener('click', onOk);
+                
+                const newCancelBtn = cancelBtn.cloneNode(true);
+                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                newCancelBtn.addEventListener('click', onCancel);
+
+                this.openModal('confirm-modal');
+            });
+        },
+
 
         initDB() {
             const request = indexedDB.open('MatchingQuizDB', 1);
@@ -456,16 +533,24 @@
         
         // --- Modal Management ---
         openModal(modalId) {
-            this.closeAllModals();
+            // Close any other open modals first to prevent overlap issues
+            this.closeAllModals(true); // silent close
             const modal = document.getElementById(modalId);
             if (modal) {
                 modal.classList.add('show');
             }
         },
         
+        closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        },
+
         openGameSelectModal() {
             if (this.currentQuiz.length === 0) {
-                alert('請先生成練習題！');
+                this.showAlert('請先生成練習題！');
                 return;
             }
             this.openModal('game-select-modal');
@@ -486,11 +571,14 @@
             this.openModal('settings-modal');
         },
 
-        closeAllModals() {
+        closeAllModals(silent = false) {
             document.querySelectorAll('.modal-backdrop.show').forEach(modal => {
-                modal.classList.remove('show');
+                if (!silent || (modal.id !== 'alert-modal' && modal.id !== 'confirm-modal')) {
+                    modal.classList.remove('show');
+                }
             });
         },
+
 
         showLoading(message) {
             document.getElementById('loading-text').textContent = message;
@@ -515,7 +603,7 @@
             this.settings.ollamaUrl = document.getElementById('ollama-url').value.trim();
             this.settings.ollamaModel = document.getElementById('ollama-model').value;
             localStorage.setItem('aiMatchingQuizSettings', JSON.stringify(this.settings));
-            alert('設定已儲存！');
+            this.showAlert('設定已儲存！');
             this.closeAllModals();
         },
         
@@ -528,7 +616,7 @@
         async fetchOllamaModels() {
             const url = document.getElementById('ollama-url').value.trim();
             if (!url) {
-                alert('請先輸入 Ollama URL。');
+                this.showAlert('請先輸入 Ollama URL。');
                 return;
             }
             const statusEl = document.getElementById('ollama-status');
@@ -585,14 +673,14 @@
                 } else if (fileType.startsWith('image/')) {
                     textContent = await this.readImage(file);
                 } else {
-                    alert('不支援的檔案格式。請上傳 PDF 或圖片檔。');
+                    this.showAlert('不支援的檔案格式。請上傳 PDF 或圖片檔。');
                     return;
                 }
                 document.getElementById('ai-text-input').value = textContent;
-                alert('文字已成功擷取並填入文字框！');
+                this.showAlert('文字已成功擷取並填入文字框！');
             } catch (error) {
                 console.error("File processing error:", error);
-                alert(`處理檔案時發生錯誤： ${error.message}`);
+                this.showAlert(`處理檔案時發生錯誤： ${error.message}`);
             } finally {
                 this.hideLoading();
                 event.target.value = '';
@@ -640,7 +728,7 @@
             const textContent = document.getElementById('ai-text-input').value.trim();
 
             if (!bankName || !pairType || !textContent) {
-                alert('請填寫所有欄位：題庫名稱、配對類型、以及教材文字。');
+                this.showAlert('請填寫所有欄位：題庫名稱、配對類型、以及教材文字。');
                 return;
             }
             
@@ -658,14 +746,14 @@
                 };
 
                 if (newBank.pairs.length === 0) {
-                    alert('AI 未能生成任何配對，請檢查您的教材內容或調整配對類型描述。');
+                    this.showAlert('AI 未能生成任何配對，請檢查您的教材內容或調整配對類型描述。');
                 } else {
                     this.saveBankToDB(newBank, true);
                     this.resetMaterialModal(); // Reset on success
                 }
             } catch (error) {
                 console.error("AI Generation Error:", error);
-                alert(`生成失敗：${error.message}`);
+                this.showAlert(`生成失敗：${error.message}`);
             } finally {
                 this.hideLoading();
             }
@@ -691,12 +779,12 @@
                     throw new Error('尚未設定 Gemini API Key。請在設定中輸入。');
                 }
             }
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
             const systemPrompt = `你是一個專業的教育內容產生器，專門從文本中提取資訊來建立配對題。
             任務：
             1. 根據使用者提供的文本和期望的配對類型，生成指定數量的配對組。
-            2. 為這兩欄配對命名，例如 "英文單字" 和 "中文翻譯"。
+            2. 為這兩欄配對命名，例如 "族語單字" 和 "中文翻譯"。
             3. 嚴格基於提供的文本內容，不可虛構或添加外部資訊。
 
             輸出格式：
@@ -717,25 +805,6 @@
                 contents: [{ parts: [{ text: userPrompt }] }],
                 generationConfig: {
                     responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "OBJECT",
-                        properties: {
-                            col1Name: { type: "STRING" },
-                            col2Name: { type: "STRING" },
-                            pairs: {
-                                type: "ARRAY",
-                                items: {
-                                    type: "OBJECT",
-                                    properties: {
-                                        item1: { type: "STRING" },
-                                        item2: { type: "STRING" }
-                                    },
-                                    required: ["item1", "item2"]
-                                }
-                            }
-                        },
-                        required: ["col1Name", "col2Name", "pairs"]
-                    }
                 }
             };
 
@@ -804,14 +873,14 @@
             const text = document.getElementById('batch-input-text').value.trim();
 
             if (!bankName || !text) {
-                alert('請輸入題庫名稱和配對內容！');
+                this.showAlert('請輸入題庫名稱和配對內容！');
                 return;
             }
 
             try {
                 const pairs = this.parseMatchingFormat(text);
                 if (pairs.length === 0) {
-                    alert('沒有成功解析任何配對，請檢查格式。');
+                    this.showAlert('沒有成功解析任何配對，請檢查格式。');
                     return;
                 }
 
@@ -825,9 +894,9 @@
 
                 this.saveBankToDB(newBank, true);
                 this.closeAllModals();
-                alert(`成功建立題庫「${bankName}」並新增 ${pairs.length} 組配對！`);
+                this.showAlert(`成功建立題庫「${bankName}」並新增 ${pairs.length} 組配對！`);
             } catch (error) {
-                alert(`建立題庫失敗：${error.message}`);
+                this.showAlert(`建立題庫失敗：${error.message}`);
             }
         },
         
@@ -872,14 +941,17 @@
             };
         },
         
-        deleteBank(id) {
-            if (!confirm("確定要刪除這個題庫嗎？")) return;
+        async deleteBank(id) {
+            const confirmed = await this.showConfirm("確定要刪除這個題庫嗎？");
+            if (!confirmed) return;
+            
             const request = this.db.transaction(["questionBanks"], "readwrite").objectStore("questionBanks").delete(id);
             request.onsuccess = () => {
                 this.selectedBankIds.delete(id);
                 this.loadBanksFromDB();
             };
         },
+
 
         // --- UI Rendering ---
         renderBankList() {
@@ -933,7 +1005,7 @@
 
         // --- Quiz Generation & Export ---
         generatePracticeQuiz(mode) {
-            if (this.selectedBankIds.size === 0) return alert("請至少選擇一個題庫！");
+            if (this.selectedBankIds.size === 0) return this.showAlert("請至少選擇一個題庫！");
 
             if (mode === 'auto') {
                 const numPairs = parseInt(document.getElementById('num-pairs').value, 10);
@@ -945,7 +1017,7 @@
                     }
                 });
                 
-                if(allAvailablePairs.length === 0) return alert("選中的題庫中沒有任何配對題目。");
+                if(allAvailablePairs.length === 0) return this.showAlert("選中的題庫中沒有任何配對題目。");
                 
                 this.currentQuiz = allAvailablePairs.sort(() => 0.5 - Math.random()).slice(0, numPairs);
                 this.renderQuizPreview();
@@ -981,7 +1053,7 @@
             });
 
             if (pairCounter === 0) {
-                return alert('選中的題庫中沒有題目可供選擇。');
+                return this.showAlert('選中的題庫中沒有題目可供選擇。');
             }
             this.openModal('manual-select-modal');
         },
@@ -993,7 +1065,7 @@
             });
             
             if (selectedPairs.length === 0) {
-                return alert('您沒有選擇任何題目！');
+                return this.showAlert('您沒有選擇任何題目！');
             }
 
             this.currentQuiz = selectedPairs;
@@ -1024,7 +1096,7 @@
 
         exportQuiz(format) {
             if (this.currentQuiz.length === 0) {
-                alert("沒有可匯出的練習題。");
+                this.showAlert("沒有可匯出的練習題。");
                 return;
             }
             
@@ -1044,7 +1116,7 @@
         
         async downloadGameWithQuiz(gameUrl) {
             if (this.currentQuiz.length === 0) {
-                alert('請先生成練習題！');
+                this.showAlert('請先生成練習題！');
                 return;
             }
 
@@ -1065,7 +1137,7 @@
 
             } catch (error) {
                 console.error('下載遊戲失敗:', error);
-                alert(`下載遊戲失敗：${error.message}`);
+                this.showAlert(`下載遊戲失敗：${error.message}`);
             } finally {
                 this.hideLoading();
             }
@@ -1194,14 +1266,54 @@
             this.saveBankToDB(bank);
             this.closeAllModals();
             this.renderBankList();
-            alert('變更已儲存！');
+            this.showAlert('變更已儲存！');
         },
 
         // --- Data Import/Export ---
+        createSampleCSVLink() {
+            const container = document.getElementById('csv-sample-link-container');
+            if (!container) return;
+
+            const sampleCSV = `bankName,col1Name,col2Name,item1,item2\r\n第一課生字,國字,注音,蘋果,ㄆㄧㄥˊ ㄍㄨㄛˇ\r\n第一課生字,國字,注音,香蕉,ㄒㄧㄤ ㄐㄧㄠ\r\n第二課詞彙,英文,"中文,含逗號","Hello, World!","你好, 世界！"`;
+            const blob = new Blob([`\uFEFF${sampleCSV}`], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            container.innerHTML = `格式：bankName, col1Name, col2Name, item1, item2<br><a href="${url}" download="sample.csv" class="text-indigo-600 hover:underline font-semibold">下載 CSV 範例檔</a>`;
+        },
+
         exportAllData() {
-            if (this.questionBanks.length === 0) return alert("沒有任何資料可以匯出。");
-            const dataStr = JSON.stringify(this.questionBanks, null, 2);
-            this.downloadFile(dataStr, 'ai_matching_quiz_backup.json', 'application/json');
+            if (this.questionBanks.length === 0) return this.showAlert("沒有任何資料可以匯出。");
+            
+            const header = "bankName,col1Name,col2Name,item1,item2";
+            const csvRows = [header];
+
+            const escapeCSV = (field) => {
+                if (field === null || field === undefined) return '';
+                const str = String(field);
+                // If the field contains a comma, a quote, or a newline, wrap it in double quotes.
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    // Escape double quotes by doubling them
+                    const escapedStr = str.replace(/"/g, '""');
+                    return `"${escapedStr}"`;
+                }
+                return str;
+            };
+
+            this.questionBanks.forEach(bank => {
+                (bank.pairs || []).forEach(pair => {
+                    const row = [
+                        escapeCSV(bank.name),
+                        escapeCSV(bank.col1Name),
+                        escapeCSV(bank.col2Name),
+                        escapeCSV(pair.item1),
+                        escapeCSV(pair.item2)
+                    ].join(',');
+                    csvRows.push(row);
+                });
+            });
+
+            const csvContent = csvRows.join('\r\n');
+            this.downloadFile(csvContent, 'ai_matching_quiz_backup.csv', 'text/csv');
         },
 
         importAllData(event) {
@@ -1210,23 +1322,60 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const importedBanks = JSON.parse(e.target.result);
-                    if (!Array.isArray(importedBanks)) throw new Error("JSON 格式不正確。");
+                    const csvText = e.target.result;
+                    const lines = csvText.trim().split(/\r?\n/);
+                    if (lines.length < 2) throw new Error("CSV 檔案需要至少包含標頭和一行資料。");
 
-                    importedBanks.forEach(bank => {
-                        if (bank.id && bank.name && bank.pairs) {
-                            this.saveBankToDB(bank);
-                        }
+                    const headerLine = lines.shift();
+                    const headers = headerLine.split(',').map(h => h.trim());
+                    const requiredHeaders = ['bankName', 'col1Name', 'col2Name', 'item1', 'item2'];
+                    if (!requiredHeaders.every(h => headers.includes(h))) {
+                        throw new Error(`CSV 標頭不正確。應包含: ${requiredHeaders.join(', ')}`);
+                    }
+
+                    const rows = lines.map(line => {
+                        const values = line.match(/(".*?"|[^",\n\r]+)(?=\s*,|\s*$)/g) || [];
+                        const rowData = {};
+                        headers.forEach((header, index) => {
+                            let value = (values[index] || '').trim();
+                            if (value.startsWith('"') && value.endsWith('"')) {
+                                value = value.slice(1, -1).replace(/""/g, '"');
+                            }
+                            rowData[header] = value;
+                        });
+                        return rowData;
                     });
+                    
+                    const banksToImport = {};
+                    rows.forEach(row => {
+                        const { bankName, col1Name, col2Name, item1, item2 } = row;
+                        if (!bankName || !item1 || !item2) return; // Skip invalid rows
+                        
+                        if (!banksToImport[bankName]) {
+                            banksToImport[bankName] = {
+                                id: `bank-${Date.now()}-${Object.keys(banksToImport).length}`,
+                                name: bankName,
+                                col1Name: col1Name || '項目1',
+                                col2Name: col2Name || '項目2',
+                                pairs: []
+                            };
+                        }
+                        banksToImport[bankName].pairs.push({ item1, item2 });
+                    });
+
+                    const importedBanks = Object.values(banksToImport);
+                    if (importedBanks.length === 0) throw new Error("在 CSV 中找不到有效的題庫資料。");
+                    
+                    importedBanks.forEach(bank => this.saveBankToDB(bank));
                     
                     setTimeout(() => {
                         this.loadBanksFromDB();
-                        alert(`成功匯入 ${importedBanks.length} 個題庫！`);
+                        this.showAlert(`成功匯入 ${importedBanks.length} 個題庫！`);
                         this.closeAllModals();
                     }, 500);
 
                 } catch (error) {
-                    alert(`匯入失敗：${error.message}`);
+                    this.showAlert(`匯入失敗：${error.message}`);
                 } finally {
                     event.target.value = ''; // Reset file input
                 }
@@ -1252,4 +1401,3 @@
     </script>
 </body>
 </html>
-
