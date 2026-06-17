@@ -1,0 +1,6 @@
+{
+  "name": "procurement-auto-mvp",
+  "version": "0.7.0",
+  "private": true,
+  "description": "Government procurement daily tender helper MVP for internal use."
+}
